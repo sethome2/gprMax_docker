@@ -1,0 +1,59 @@
+FROM python:3.10-slim-bookworm
+
+ARG GPRMAX_VERSION=3.1.7
+ARG GPRMAX_TAG=v.3.1.7
+
+LABEL org.opencontainers.image.title="gprMax CPU"
+LABEL org.opencontainers.image.description="CPU/noGPU Docker image for the official gprMax release"
+LABEL org.opencontainers.image.source="https://github.com/sethome2/gprMax_docker"
+LABEL org.opencontainers.image.licenses="GPL-3.0-or-later"
+LABEL org.opencontainers.image.version="${GPRMAX_VERSION}"
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PIP_NO_CACHE_DIR=1
+ENV OMP_NUM_THREADS=1
+ENV GPRMAX_HOME=/opt/gprMax
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        ca-certificates \
+        git \
+        libgomp1 \
+        libhdf5-dev \
+        pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python -m pip install --upgrade pip setuptools wheel
+
+RUN git clone --depth 1 --branch "${GPRMAX_TAG}" https://github.com/gprMax/gprMax.git "${GPRMAX_HOME}"
+
+WORKDIR ${GPRMAX_HOME}
+
+RUN python -m pip install \
+        colorama \
+        cython \
+        h5py \
+        jupyter \
+        matplotlib \
+        numpy \
+        psutil \
+        scipy \
+        terminaltables \
+        tqdm \
+    && python setup.py build \
+    && python setup.py install \
+    && python setup.py clean
+
+COPY scripts/gprmax-entrypoint.sh /usr/local/bin/gprmax-entrypoint
+RUN chmod +x /usr/local/bin/gprmax-entrypoint \
+    && mkdir -p /work \
+    && ln -s "${GPRMAX_HOME}/user_models" /work/user_models \
+    && ln -s "${GPRMAX_HOME}/tools" /work/tools \
+    && ln -s "${GPRMAX_HOME}/user_libs" /work/user_libs
+
+WORKDIR /work
+
+ENTRYPOINT ["gprmax-entrypoint"]
+CMD ["--help"]
