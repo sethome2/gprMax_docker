@@ -21,6 +21,8 @@ Tags:
 - `latest-cpu`
 - `latest-gpu`
 
+对于 CPU 版本，本地构建的镜像可能性能更好，因为 gprMax 会针对宿主机 CPU 进行编译。
+
 ## 运行
 
 容器默认执行 `python3 -m gprMax "$@"`，工作目录为 `/work`。如果没有绑定挂载目录，`/work/user_models`、`/work/tools` 和 `/work/user_libs` 会指向 `/opt/gprMax` 下打包好的发行版资源。

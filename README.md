@@ -21,6 +21,8 @@ Tags:
 - `latest-cpu`
 - `latest-gpu`
 
+For the CPU version, a locally built image may perform better because gprMax is compiled for your host CPU.
+
 ## Run
 
 The containers default to `python3 -m gprMax "$@"`, with `/work` as the working directory. Without a bind mount, `/work/user_models`, `/work/tools`, and `/work/user_libs` point to the packaged release resources under `/opt/gprMax`.
