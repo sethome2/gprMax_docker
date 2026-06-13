@@ -39,6 +39,14 @@ Run your own models by mounting a directory:
 docker run --rm -v "$PWD":/work ghcr.io/sethome2/gprmax-docker:3.1.7-cpu model.in
 ```
 
+### Passing gprMax arguments
+
+Arguments after the image name are passed directly to gprMax. For example, this is equivalent to `python -m gprMax cylinder_Bscan_GSSI_1500.in -n 54`:
+
+```bash
+docker run --rm -v "$PWD":/work ghcr.io/sethome2/gprmax-docker:3.1.7-cpu cylinder_Bscan_GSSI_1500.in -n 54
+```
+
 GPU run:
 
 ```bash

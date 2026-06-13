@@ -39,6 +39,14 @@ docker run --rm ghcr.io/sethome2/gprmax-docker:3.1.7-cpu user_models/cylinder_As
 docker run --rm -v "$PWD":/work ghcr.io/sethome2/gprmax-docker:3.1.7-cpu model.in
 ```
 
+### 传递 gprMax 参数
+
+镜像名后面的参数会直接传给 gprMax。例如，下面的命令等价于 `python -m gprMax cylinder_Bscan_GSSI_1500.in -n 54`：
+
+```bash
+docker run --rm -v "$PWD":/work ghcr.io/sethome2/gprmax-docker:3.1.7-cpu cylinder_Bscan_GSSI_1500.in -n 54
+```
+
 GPU 运行：
 
 ```bash
