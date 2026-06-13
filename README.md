@@ -1,5 +1,7 @@
 # gprMax Docker
 
+简体中文文档: [README_zh.md](README_zh.md)
+
 Docker packaging for the official gprMax release, with separate CPU and NVIDIA GPU images.
 
 The default release source is the official `v.3.1.7` GitHub tag. That tag currently reports `v3.1.6` in the gprMax runtime banner/egg metadata, so the Docker image tag tracks the upstream release tag rather than the internal banner string. The container keeps the release source tree, including `user_models` and `tools`.
@@ -18,30 +20,6 @@ Tags:
 - `3.1.7-gpu`
 - `latest-cpu`
 - `latest-gpu`
-
-## Build Locally
-
-CPU/noGPU image:
-
-```bash
-docker build -f Dockerfile.cpu -t gprmax:3.1.7-cpu .
-```
-
-GPU image:
-
-```bash
-docker build -f Dockerfile.gpu -t gprmax:3.1.7-gpu .
-```
-
-Override the packaged gprMax release:
-
-```bash
-docker build \
-  -f Dockerfile.cpu \
-  --build-arg GPRMAX_VERSION=3.1.7 \
-  --build-arg GPRMAX_TAG=v.3.1.7 \
-  -t gprmax:3.1.7-cpu .
-```
 
 ## Run
 
@@ -71,6 +49,30 @@ Run helper modules by overriding the entrypoint:
 
 ```bash
 docker run --rm -v "$PWD":/work --entrypoint python3 ghcr.io/sethome2/gprmax-docker:3.1.7-cpu -m tools.plot_Ascan file.out
+```
+
+## Build Locally
+
+CPU/noGPU image:
+
+```bash
+docker build -f Dockerfile.cpu -t gprmax:3.1.7-cpu .
+```
+
+GPU image:
+
+```bash
+docker build -f Dockerfile.gpu -t gprmax:3.1.7-gpu .
+```
+
+Override the packaged gprMax release:
+
+```bash
+docker build \
+  -f Dockerfile.cpu \
+  --build-arg GPRMAX_VERSION=3.1.7 \
+  --build-arg GPRMAX_TAG=v.3.1.7 \
+  -t gprmax:3.1.7-cpu .
 ```
 
 ## Smoke Tests
