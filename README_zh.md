@@ -2,7 +2,7 @@
 
 English documentation: [README.md](README.md)
 
-这是官方 gprMax 发行版的 Docker 打包仓库，提供独立的 CPU 和 NVIDIA GPU 镜像。
+这是 gprMax 官方发行版和开发快照的 Docker 打包仓库，提供独立的 CPU 和 NVIDIA GPU 镜像。
 
 默认发行版源码来自官方 `v.3.1.7` GitHub tag。该 tag 目前在 gprMax 运行时 banner 和 egg metadata 中显示为 `v3.1.6`，因此 Docker 镜像 tag 跟随上游 release tag，而不是内部 banner 字符串。容器会保留发行版源码树，包括 `user_models` 和 `tools`。
 
@@ -20,6 +20,10 @@ Tags:
 - `3.1.7-gpu`
 - `latest-cpu`
 - `latest-gpu`
+- `devel-cpu`
+- `devel-gpu`
+
+`devel-*` tag 是上游 gprMax `devel` 分支的不稳定快照，workflow 每月检查一次上游是否有新 commit。
 
 对于 CPU 版本，本地构建的镜像可能性能更好，因为 gprMax 会针对宿主机 CPU 进行编译。
 
@@ -103,8 +107,8 @@ docker run --rm --gpus all gprmax:3.1.7-gpu user_models/cylinder_Ascan_2D.in -gp
 
 ## 发布 Workflow
 
-GitHub Actions workflow 会在 push 到 `main`、push tag 和手动触发时构建并发布 CPU/GPU 镜像到 GHCR。CPU 镜像会在 CI 中执行 `--help` smoke test。GPU 镜像只构建和推送，因为 GitHub-hosted runner 不提供 NVIDIA GPU。
+GitHub Actions workflow 会在 push 到 `main`、push tag 和手动触发时构建并发布 CPU/GPU 镜像到 GHCR。devel workflow 还会每月检查上游，仅在 commit 变化时重新构建。CPU 镜像会在 CI 中执行 `--help` smoke test。GPU 镜像只构建和推送，因为 GitHub-hosted runner 不提供 NVIDIA GPU。
 
 ## 范围
 
-本仓库用于打包官方 gprMax 发行版。它不会 fork 或 patch gprMax 源码。MPI/OpenMPI 支持有意留给未来的镜像变体。
+本仓库用于打包官方 gprMax 发行版和未经修改的 devel 快照。它不会 fork 或 patch gprMax 源码。专用 MPI 镜像变体留待未来实现。

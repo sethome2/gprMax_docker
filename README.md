@@ -2,7 +2,7 @@
 
 简体中文文档: [README_zh.md](README_zh.md)
 
-Docker packaging for the official gprMax release, with separate CPU and NVIDIA GPU images.
+Docker packaging for official gprMax releases and development snapshots, with separate CPU and NVIDIA GPU images.
 
 The default release source is the official `v.3.1.7` GitHub tag. That tag currently reports `v3.1.6` in the gprMax runtime banner/egg metadata, so the Docker image tag tracks the upstream release tag rather than the internal banner string. The container keeps the release source tree, including `user_models` and `tools`.
 
@@ -20,6 +20,10 @@ Tags:
 - `3.1.7-gpu`
 - `latest-cpu`
 - `latest-gpu`
+- `devel-cpu`
+- `devel-gpu`
+
+The `devel-*` tags are unstable snapshots of the upstream gprMax `devel` branch. The workflow checks for a new upstream commit once a month.
 
 For the CPU version, a locally built image may perform better because gprMax is compiled for your host CPU.
 
@@ -103,8 +107,8 @@ docker run --rm --gpus all gprmax:3.1.7-gpu user_models/cylinder_Ascan_2D.in -gp
 
 ## Release Workflow
 
-The GitHub Actions workflow builds and publishes CPU/GPU images to GHCR on pushes to `main`, tags, and manual dispatches. CPU gets a `--help` smoke test in CI. GPU is build/push only because GitHub-hosted runners do not provide NVIDIA GPUs.
+The GitHub Actions workflows build and publish CPU/GPU images to GHCR on pushes to `main`, tags, and manual dispatches. The devel workflow also checks upstream monthly and rebuilds only when its commit changes. CPU gets a `--help` smoke test in CI. GPU is build/push only because GitHub-hosted runners do not provide NVIDIA GPUs.
 
 ## Scope
 
-This repository packages official gprMax releases. It does not fork or patch gprMax source code. MPI/OpenMPI support is intentionally left for a future image variant.
+This repository packages official gprMax releases and unmodified devel snapshots. It does not fork or patch gprMax source code. A dedicated MPI image variant is intentionally left for the future.
