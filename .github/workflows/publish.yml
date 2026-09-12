@@ -97,4 +97,4 @@ jobs:
           build-args: |
             GPRMAX_VERSION=${{ env.GPRMAX_VERSION }}
             GPRMAX_TAG=${{ env.GPRMAX_TAG }}
-            CUDA_VERSION=12.4.1
+            CUDA_VERSION=12.6.3

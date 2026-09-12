@@ -1,4 +1,4 @@
-FROM python:3.10-slim-bookworm
+FROM python:3.13-slim-bookworm
 
 ARG GPRMAX_VERSION=3.1.7
 ARG GPRMAX_TAG=v.3.1.7
@@ -15,6 +15,7 @@ ENV PYTHONUNBUFFERED=1
 ENV PIP_NO_CACHE_DIR=1
 ENV OMP_NUM_THREADS=1
 ENV GPRMAX_HOME=/opt/gprMax
+ENV GPRMAX_PYTHON=python3
 
 RUN case "${GPRMAX_CHANNEL}" in release|devel) ;; *) echo "Unsupported GPRMAX_CHANNEL: ${GPRMAX_CHANNEL}" >&2; exit 1 ;; esac \
     && apt-get update \
@@ -30,7 +31,8 @@ RUN case "${GPRMAX_CHANNEL}" in release|devel) ;; *) echo "Unsupported GPRMAX_CH
     fi \
     && rm -rf /var/lib/apt/lists/*
 
-RUN python -m pip install --upgrade pip setuptools wheel
+RUN ${GPRMAX_PYTHON} -m pip install --upgrade pip setuptools wheel \
+    && ${GPRMAX_PYTHON} -c 'import sys; assert (3, 11) <= sys.version_info[:2] < (3, 14), sys.version'
 
 RUN mkdir -p "${GPRMAX_HOME}" \
     && curl -fsSL "https://github.com/gprMax/gprMax/archive/${GPRMAX_TAG}.tar.gz" -o /tmp/gprmax.tar.gz \
@@ -39,7 +41,7 @@ RUN mkdir -p "${GPRMAX_HOME}" \
 
 WORKDIR ${GPRMAX_HOME}
 
-RUN python -m pip install \
+RUN ${GPRMAX_PYTHON} -m pip install \
         colorama \
         cython \
         h5py \
@@ -51,16 +53,16 @@ RUN python -m pip install \
         terminaltables \
         tqdm \
     && if [ "${GPRMAX_CHANNEL}" = "devel" ]; then \
-        python -m pip install \
+        ${GPRMAX_PYTHON} -m pip install \
             humanize \
             jinja2 \
             mpi4py \
             numpy-stl \
             typing-extensions; \
     fi \
-    && python setup.py build \
-    && python setup.py install \
-    && python setup.py clean
+    && ${GPRMAX_PYTHON} setup.py build \
+    && ${GPRMAX_PYTHON} setup.py install \
+    && ${GPRMAX_PYTHON} setup.py clean
 
 COPY scripts/gprmax-entrypoint.sh /usr/local/bin/gprmax-entrypoint
 RUN chmod +x /usr/local/bin/gprmax-entrypoint \

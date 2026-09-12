@@ -25,6 +25,8 @@ Tags:
 
 `devel-*` tag 是上游 gprMax `devel` 分支的不稳定快照，workflow 每月检查一次上游是否有新 commit。
 
+CPU 镜像使用 Python 3.13。GPU 镜像使用 Ubuntu 24.04 和 CUDA 12.6.3，并在独立虚拟环境中使用 Python 3.12；这两个版本都在当前 gprMax `devel` 分支支持的 Python 范围内。
+
 对于 CPU 版本，本地构建的镜像可能性能更好，因为 gprMax 会针对宿主机 CPU 进行编译。
 
 ## 运行

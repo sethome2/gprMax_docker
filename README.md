@@ -25,6 +25,8 @@ Tags:
 
 The `devel-*` tags are unstable snapshots of the upstream gprMax `devel` branch. The workflow checks for a new upstream commit once a month.
 
+The CPU images use Python 3.13. The GPU images use CUDA 12.6.3 on Ubuntu 24.04 with Python 3.12 in an isolated virtual environment; both versions are within the Python range supported by the current gprMax `devel` branch.
+
 For the CPU version, a locally built image may perform better because gprMax is compiled for your host CPU.
 
 ## Run

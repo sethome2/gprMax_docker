@@ -160,6 +160,6 @@ jobs:
             GPRMAX_VERSION=devel
             GPRMAX_TAG=${{ needs.prepare.outputs.revision }}
             GPRMAX_CHANNEL=devel
-            CUDA_VERSION=12.4.1
+            CUDA_VERSION=12.6.3
           cache-from: type=gha,scope=gprmax-devel-gpu
           cache-to: type=gha,mode=max,scope=gprmax-devel-gpu
