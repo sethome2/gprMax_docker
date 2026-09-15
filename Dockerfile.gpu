@@ -1,9 +1,8 @@
 ARG CUDA_VERSION=12.6.3
 FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu24.04
 
-ARG GPRMAX_VERSION=3.1.7
-ARG GPRMAX_TAG=v.3.1.7
-ARG GPRMAX_CHANNEL=release
+ARG GPRMAX_VERSION=4.0.0
+ARG GPRMAX_REVISION=116685ebb8d6f68015ea7cda993f1bd7c21f96f1
 ARG CUDA_VERSION
 
 LABEL org.opencontainers.image.title="gprMax GPU"
@@ -11,6 +10,7 @@ LABEL org.opencontainers.image.description="NVIDIA GPU Docker image for gprMax"
 LABEL org.opencontainers.image.source="https://github.com/sethome2/gprMax_docker"
 LABEL org.opencontainers.image.licenses="GPL-3.0-or-later"
 LABEL org.opencontainers.image.version="${GPRMAX_VERSION}"
+LABEL org.opencontainers.image.revision="${GPRMAX_REVISION}"
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -25,8 +25,7 @@ ENV PATH="${CUDA_HOME}/bin:${PATH}"
 ENV LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${LD_LIBRARY_PATH}"
 ENV PATH="${GPRMAX_VENV}/bin:${PATH}"
 
-RUN case "${GPRMAX_CHANNEL}" in release|devel) ;; *) echo "Unsupported GPRMAX_CHANNEL: ${GPRMAX_CHANNEL}" >&2; exit 1 ;; esac \
-    && apt-get update \
+RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         build-essential \
         ca-certificates \
@@ -37,9 +36,6 @@ RUN case "${GPRMAX_CHANNEL}" in release|devel) ;; *) echo "Unsupported GPRMAX_CH
         python3 \
         python3-dev \
         python3-venv \
-    && if [ "${GPRMAX_CHANNEL}" = "devel" ]; then \
-        apt-get install -y --no-install-recommends libopenmpi-dev openmpi-bin; \
-    fi \
     && rm -rf /var/lib/apt/lists/*
 
 RUN python3 -m venv "${GPRMAX_VENV}" \
@@ -47,35 +43,17 @@ RUN python3 -m venv "${GPRMAX_VENV}" \
     && "${GPRMAX_PYTHON}" -c 'import sys; assert (3, 11) <= sys.version_info[:2] < (3, 14), sys.version'
 
 RUN mkdir -p "${GPRMAX_HOME}" \
-    && curl -fsSL "https://github.com/gprMax/gprMax/archive/${GPRMAX_TAG}.tar.gz" -o /tmp/gprmax.tar.gz \
+    && curl -fsSL "https://github.com/gprMax/gprMax/archive/${GPRMAX_REVISION}.tar.gz" -o /tmp/gprmax.tar.gz \
     && tar -xzf /tmp/gprmax.tar.gz --strip-components=1 -C "${GPRMAX_HOME}" \
     && rm /tmp/gprmax.tar.gz
 
 WORKDIR ${GPRMAX_HOME}
 
-RUN "${GPRMAX_PYTHON}" -m pip install \
-        colorama \
-        cython \
-        h5py \
-        jupyter \
-        matplotlib \
-        numpy \
-        psutil \
-        pycuda \
-        scipy \
-        terminaltables \
-        tqdm \
-    && if [ "${GPRMAX_CHANNEL}" = "devel" ]; then \
-        "${GPRMAX_PYTHON}" -m pip install \
-            humanize \
-            jinja2 \
-            mpi4py \
-            numpy-stl \
-            typing-extensions; \
-    fi \
-    && "${GPRMAX_PYTHON}" setup.py build \
-    && "${GPRMAX_PYTHON}" setup.py install \
-    && "${GPRMAX_PYTHON}" setup.py clean
+RUN "${GPRMAX_PYTHON}" -m pip install ".[cuda]" \
+    && cd /tmp \
+    && "${GPRMAX_PYTHON}" -c 'import gprMax; assert gprMax.__version__ == "4.0.0", gprMax.__version__'
+
+ENV MPLCONFIGDIR=/tmp/matplotlib
 
 COPY scripts/gprmax-entrypoint.sh /usr/local/bin/gprmax-entrypoint
 RUN chmod +x /usr/local/bin/gprmax-entrypoint \

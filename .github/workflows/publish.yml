@@ -14,8 +14,8 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: sethome2/gprmax-docker
-  GPRMAX_VERSION: 3.1.7
-  GPRMAX_TAG: v.3.1.7
+  GPRMAX_VERSION: 4.0.0
+  GPRMAX_REVISION: 116685ebb8d6f68015ea7cda993f1bd7c21f96f1
 
 jobs:
   build-cpu:
@@ -47,10 +47,23 @@ jobs:
           tags: local/gprmax:${{ env.GPRMAX_VERSION }}-cpu
           build-args: |
             GPRMAX_VERSION=${{ env.GPRMAX_VERSION }}
-            GPRMAX_TAG=${{ env.GPRMAX_TAG }}
+            GPRMAX_REVISION=${{ env.GPRMAX_REVISION }}
 
       - name: Smoke test CPU image
-        run: docker run --rm local/gprmax:${{ env.GPRMAX_VERSION }}-cpu --help
+        run: |
+          set -euo pipefail
+          smoke_dir="${RUNNER_TEMP}/gprmax-smoke"
+          mkdir -p "${smoke_dir}"
+          docker run --rm --entrypoint sh \
+            -v "${smoke_dir}:/work" \
+            local/gprmax:${{ env.GPRMAX_VERSION }}-cpu \
+            -c 'cp /opt/gprMax/examples/gpr/basic/cylinder_Ascan_2D.in /work/model.in'
+          docker run --rm -v "${smoke_dir}:/work" \
+            local/gprmax:${{ env.GPRMAX_VERSION }}-cpu model.in
+          docker run --rm --entrypoint python3 \
+            -v "${smoke_dir}:/work" \
+            local/gprmax:${{ env.GPRMAX_VERSION }}-cpu \
+            -c 'import h5py; f=h5py.File("/work/model.h5"); assert f.attrs["gprMax"] == "4.0.0"'
 
       - name: Publish CPU image
         uses: docker/build-push-action@v6
@@ -63,7 +76,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-cpu
           build-args: |
             GPRMAX_VERSION=${{ env.GPRMAX_VERSION }}
-            GPRMAX_TAG=${{ env.GPRMAX_TAG }}
+            GPRMAX_REVISION=${{ env.GPRMAX_REVISION }}
 
   build-gpu:
     name: Build GPU image
@@ -96,5 +109,5 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-gpu
           build-args: |
             GPRMAX_VERSION=${{ env.GPRMAX_VERSION }}
-            GPRMAX_TAG=${{ env.GPRMAX_TAG }}
+            GPRMAX_REVISION=${{ env.GPRMAX_REVISION }}
             CUDA_VERSION=12.6.3
