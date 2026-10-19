@@ -35,7 +35,7 @@ record 3.1.6. Source version files are never rewritten.
 
 Both images use Python 3.12. The GPU image uses CUDA 12.6.3 on Ubuntu 24.04 with Python in an isolated virtual environment.
 
-For the CPU version, a locally built image may perform better because gprMax is compiled for your host CPU.
+CPU extensions use a portable x86-64 target so the same image can run across worker hosts.
 
 ## Run
 
