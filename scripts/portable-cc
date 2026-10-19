@@ -1,0 +1,7 @@
+#!/usr/bin/env python3
+"""Use a portable x86-64 target even when upstream requests -march=native."""
+import os
+import sys
+
+replacements = {'-march=native': '-march=x86-64', '-mtune=native': '-mtune=generic'}
+os.execv('/usr/bin/gcc', ['gcc', *(replacements.get(arg, arg) for arg in sys.argv[1:])])

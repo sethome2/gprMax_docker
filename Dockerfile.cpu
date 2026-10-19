@@ -1,7 +1,9 @@
 FROM python:3.12-slim-bookworm
 
-ARG GPRMAX_VERSION=4.0.0
-ARG GPRMAX_REVISION=116685ebb8d6f68015ea7cda993f1bd7c21f96f1
+ARG GPRMAX_VERSION=4.0.1
+ARG GPRMAX_REVISION=3ab1c854348a9220beed6ff6925b166a14cfe2b4
+ARG GPRMAX_CHANNEL=v4
+ARG PACKAGING_REVISION=local
 
 LABEL org.opencontainers.image.title="gprMax CPU"
 LABEL org.opencontainers.image.description="CPU/noGPU Docker image for gprMax"
@@ -9,11 +11,17 @@ LABEL org.opencontainers.image.source="https://github.com/sethome2/gprMax_docker
 LABEL org.opencontainers.image.licenses="GPL-3.0-or-later"
 LABEL org.opencontainers.image.version="${GPRMAX_VERSION}"
 LABEL org.opencontainers.image.revision="${GPRMAX_REVISION}"
+LABEL io.gprmax.channel="${GPRMAX_CHANNEL}"
+LABEL io.gprmax.packaging-revision="${PACKAGING_REVISION}"
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PIP_NO_CACHE_DIR=1
 ENV OMP_NUM_THREADS=1
+ENV GPRMAX_BUILD_JOBS=2
+ENV GPRMAX_VERSION=${GPRMAX_VERSION}
+ENV GPRMAX_VARIANT=cpu
+ENV CC=/usr/local/bin/portable-cc
 ENV GPRMAX_HOME=/opt/gprMax
 ENV GPRMAX_PYTHON=python3
 
@@ -37,9 +45,10 @@ RUN mkdir -p "${GPRMAX_HOME}" \
 
 WORKDIR ${GPRMAX_HOME}
 
-RUN ${GPRMAX_PYTHON} -m pip install . \
-    && cd /tmp \
-    && ${GPRMAX_PYTHON} -c 'import gprMax; assert gprMax.__version__ == "4.0.0", gprMax.__version__'
+COPY scripts/install.sh scripts/source_manifest.py /usr/local/libexec/
+COPY scripts/portable-cc /usr/local/bin/portable-cc
+RUN chmod +x /usr/local/bin/portable-cc \
+    && sh /usr/local/libexec/install.sh
 
 ENV MPLCONFIGDIR=/tmp/matplotlib
 

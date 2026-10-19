@@ -1,113 +1,135 @@
-name: Build and publish Docker images
+name: Sync official gprMax images
 
 on:
   push:
-    branches:
-      - main
-    tags:
-      - "*"
-    paths-ignore:
-      - "**/*.md"
-      - "docs/**"
+    branches: [main]
+    paths-ignore: ['**/*.md', 'docs/**']
   workflow_dispatch:
+  schedule:
+    - cron: '17 3 * * *'
+
+concurrency:
+  group: publish-official-images
+  cancel-in-progress: false
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: sethome2/gprmax-docker
-  GPRMAX_VERSION: 4.0.0
-  GPRMAX_REVISION: 116685ebb8d6f68015ea7cda993f1bd7c21f96f1
+  IMAGE: ghcr.io/sethome2/gprmax-docker
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
-  build-cpu:
-    name: Build CPU image
+  resolve:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+    outputs:
+      matrix: ${{ steps.resolve.outputs.matrix }}
+      changed: ${{ steps.resolve.outputs.changed }}
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - id: resolve
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/channels.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: upstream-channels
+          path: channels.json
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build CPU image for smoke test
+  build:
+    needs: resolve
+    if: needs.resolve.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.resolve.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v3
+      - name: Build candidate without upstream patches
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: Dockerfile.cpu
+          file: Dockerfile.${{ matrix.kind }}
+          platforms: linux/amd64
           load: true
-          tags: local/gprmax:${{ env.GPRMAX_VERSION }}-cpu
+          tags: ${{ matrix.candidate }}
           build-args: |
-            GPRMAX_VERSION=${{ env.GPRMAX_VERSION }}
-            GPRMAX_REVISION=${{ env.GPRMAX_REVISION }}
-
-      - name: Smoke test CPU image
+            GPRMAX_VERSION=${{ matrix.version }}
+            GPRMAX_REVISION=${{ matrix.revision }}
+            GPRMAX_CHANNEL=${{ matrix.channel }}
+            PACKAGING_REVISION=${{ github.sha }}
+      - name: Verify source, installed version and help
+        env:
+          CANDIDATE: ${{ matrix.candidate }}
         run: |
-          set -euo pipefail
-          smoke_dir="${RUNNER_TEMP}/gprmax-smoke"
-          mkdir -p "${smoke_dir}"
-          docker run --rm --entrypoint sh \
-            -v "${smoke_dir}:/work" \
-            local/gprmax:${{ env.GPRMAX_VERSION }}-cpu \
-            -c 'cp /opt/gprMax/examples/gpr/basic/cylinder_Ascan_2D.in /work/model.in'
-          docker run --rm -v "${smoke_dir}:/work" \
-            local/gprmax:${{ env.GPRMAX_VERSION }}-cpu model.in
-          docker run --rm --entrypoint python3 \
-            -v "${smoke_dir}:/work" \
-            local/gprmax:${{ env.GPRMAX_VERSION }}-cpu \
-            -c 'import h5py; f=h5py.File("/work/model.h5"); assert f.attrs["gprMax"] == "4.0.0"'
-
-      - name: Publish CPU image
-        uses: docker/build-push-action@v6
+          docker run --rm --entrypoint python3 "$CANDIDATE" /usr/local/libexec/source_manifest.py verify
+          docker run --rm "$CANDIDATE" --help
+      - name: CPU simulation smoke test
+        if: matrix.kind == 'cpu'
+        env:
+          CANDIDATE: ${{ matrix.candidate }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/smoke"
+          docker run --rm -v "$RUNNER_TEMP/smoke:/work" -v "$PWD/scripts/smoke.py:/tmp/smoke.py:ro" --entrypoint python3 "$CANDIDATE" /tmp/smoke.py
+      - name: Push candidate and save provenance
+        env:
+          ENTRY: ${{ toJSON(matrix) }}
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          entry = json.loads(os.environ['ENTRY'])
+          subprocess.run(['docker', 'push', entry['candidate']], check=True)
+          image = json.loads(subprocess.check_output(['docker', 'image', 'inspect', entry['candidate']]))[0]
+          entry['digest'] = next(ref.split('@')[1] for ref in image['RepoDigests'] if ref.startswith(os.environ['IMAGE'] + '@'))
+          Path('image.json').write_text(json.dumps(entry, indent=2) + '\n')
+          PY
+      - uses: actions/upload-artifact@v4
         with:
-          context: .
-          file: Dockerfile.cpu
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.GPRMAX_VERSION }}-cpu
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-cpu
-          build-args: |
-            GPRMAX_VERSION=${{ env.GPRMAX_VERSION }}
-            GPRMAX_REVISION=${{ env.GPRMAX_REVISION }}
+          name: image-${{ matrix.channel }}-${{ matrix.kind }}
+          path: image.json
 
-  build-gpu:
-    name: Build GPU image
+  promote:
+    needs: [resolve, build]
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
+      - uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Publish GPU image
-        uses: docker/build-push-action@v6
+      - uses: docker/setup-buildx-action@v3
+      - uses: actions/download-artifact@v4
         with:
-          context: .
-          file: Dockerfile.gpu
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.GPRMAX_VERSION }}-gpu
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-gpu
-          build-args: |
-            GPRMAX_VERSION=${{ env.GPRMAX_VERSION }}
-            GPRMAX_REVISION=${{ env.GPRMAX_REVISION }}
-            CUDA_VERSION=12.6.3
+          pattern: image-*
+          path: images
+      - name: Promote only after all candidates pass
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          entries = [json.loads(path.read_text()) for path in sorted(Path('images').glob('*/image.json'))]
+          for entry in entries:
+              for tag in entry['tags']:
+                  subprocess.run(['docker', 'buildx', 'imagetools', 'create', '--prefer-index=false', '-t', tag, os.environ['IMAGE'] + '@' + entry['digest']], check=True)
+          Path('release-manifest.json').write_text(json.dumps(entries, indent=2) + '\n')
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              print('|Channel|Variant|Version|Upstream commit|Digest|\n|---|---|---|---|---|', file=summary)
+              for entry in entries:
+                  print('|{channel}|{kind}|{version}|{revision}|{digest}|'.format(**entry), file=summary)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-manifest
+          path: release-manifest.json
