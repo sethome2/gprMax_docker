@@ -139,3 +139,7 @@ docker run --rm --entrypoint python3 IMAGE /usr/local/libexec/source_manifest.py
 
 发布镜像不会自动重启 worker；生产升级需单独取消/排空任务、拉取镜像并固定 digest。
 容量补丁镜像的退出情况见 Worker 仓库部署记录。
+
+注意：官方 `v.3.1.7` tag 的 `_version.py` 仍声明 `3.1.6`。本仓库保留该上游差异，
+镜像 tag 使用发布版本 3.1.7，`io.gprmax.runtime-version`、`GPRMAX_RUNTIME_VERSION`
+及发布清单记录实际运行版本 3.1.6；不修改源码版本文件。

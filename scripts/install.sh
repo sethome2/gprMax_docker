@@ -15,5 +15,5 @@ else
     fi
 fi
 cd /tmp
-python3 -c 'import gprMax, os; assert gprMax.__version__ == os.environ["GPRMAX_VERSION"], gprMax.__version__'
+python3 -c 'import gprMax, os; assert gprMax.__version__ == os.environ["GPRMAX_RUNTIME_VERSION"], gprMax.__version__'
 python3 /usr/local/libexec/source_manifest.py verify

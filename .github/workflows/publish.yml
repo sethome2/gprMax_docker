@@ -66,8 +66,11 @@ jobs:
           platforms: linux/amd64
           load: true
           tags: ${{ matrix.candidate }}
+          cache-from: type=gha,scope=${{ matrix.channel }}-${{ matrix.kind }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.channel }}-${{ matrix.kind }}
           build-args: |
             GPRMAX_VERSION=${{ matrix.version }}
+            GPRMAX_RUNTIME_VERSION=${{ matrix.runtime_version }}
             GPRMAX_REVISION=${{ matrix.revision }}
             GPRMAX_CHANNEL=${{ matrix.channel }}
             PACKAGING_REVISION=${{ github.sha }}

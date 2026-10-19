@@ -2,6 +2,7 @@ ARG CUDA_VERSION=12.6.3
 FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu24.04
 
 ARG GPRMAX_VERSION=4.0.1
+ARG GPRMAX_RUNTIME_VERSION=4.0.1
 ARG GPRMAX_REVISION=3ab1c854348a9220beed6ff6925b166a14cfe2b4
 ARG GPRMAX_CHANNEL=v4
 ARG PACKAGING_REVISION=local
@@ -12,6 +13,7 @@ LABEL org.opencontainers.image.description="NVIDIA GPU Docker image for gprMax"
 LABEL org.opencontainers.image.source="https://github.com/sethome2/gprMax_docker"
 LABEL org.opencontainers.image.licenses="GPL-3.0-or-later"
 LABEL org.opencontainers.image.version="${GPRMAX_VERSION}"
+LABEL io.gprmax.runtime-version="${GPRMAX_RUNTIME_VERSION}"
 LABEL org.opencontainers.image.revision="${GPRMAX_REVISION}"
 LABEL io.gprmax.channel="${GPRMAX_CHANNEL}"
 LABEL io.gprmax.packaging-revision="${PACKAGING_REVISION}"
@@ -23,6 +25,7 @@ ENV PIP_NO_CACHE_DIR=1
 ENV OMP_NUM_THREADS=1
 ENV GPRMAX_BUILD_JOBS=2
 ENV GPRMAX_VERSION=${GPRMAX_VERSION}
+ENV GPRMAX_RUNTIME_VERSION=${GPRMAX_RUNTIME_VERSION}
 ENV GPRMAX_VARIANT=gpu
 ENV CC=/usr/local/bin/portable-cc
 ENV GPRMAX_HOME=/opt/gprMax

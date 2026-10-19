@@ -21,7 +21,7 @@ command = [sys.executable, '-m', 'gprMax', 'smoke.in', '-n', '2']
 if '--gpu' in sys.argv:
     command.append('-gpu')
 subprocess.run(command, check=True)
-version = os.environ['GPRMAX_VERSION']
+version = os.environ['GPRMAX_RUNTIME_VERSION']
 extension = '.out' if version.startswith('3.') else '.h5'
 files = sorted(Path('.').glob('smoke*' + extension))
 assert len(files) == 2, files

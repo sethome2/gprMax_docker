@@ -32,8 +32,9 @@ class ChannelsTest(unittest.TestCase):
             if path.startswith('releases'):
                 return [dict(tag_name=t, draft=False, prerelease=pre) for t, pre in [('v.4.0.0', False), ('v.4.0.2', True), ('v.4.0.1', False), ('v.3.1.7', False)]]
             if path.startswith('contents/'):
-                return {'content': base64.b64encode(b'__version__ = "4.0.2"').decode()}
-            return {'object': {'type': 'commit', 'sha': ('d' if 'master' in path else 'a') * 40}}
+                version = '3.1.6' if '3' * 40 in path else ('4.0.2' if 'd' * 40 in path else '4.0.1')
+                return {'content': base64.b64encode(f'__version__ = "{version}"'.encode()).decode()}
+            return {'object': {'type': 'commit', 'sha': ('d' if 'master' in path else ('3' if 'v.3.' in path else 'a')) * 40}}
         previous = Path.cwd()
         with tempfile.TemporaryDirectory() as tmp:
             os.chdir(tmp)
@@ -48,6 +49,7 @@ class ChannelsTest(unittest.TestCase):
                 self.assertEqual(len(matrix), 6)
                 self.assertEqual({x['version'] for x in matrix if x['channel'] == 'v4'}, {'4.0.1'})
                 self.assertEqual({x['source'] for x in matrix if x['channel'] == 'devel'}, {'master'})
+                self.assertEqual({x['runtime_version'] for x in matrix if x['channel'] == 'v3'}, {'3.1.6'})
                 self.assertTrue(all('latest' not in tag for x in matrix if x['channel'] != 'v4' for tag in x['tags']))
             finally:
                 os.chdir(previous)

@@ -33,8 +33,6 @@ def main():
     for channel in ['v4', 'v3', 'devel']:
         if channel == 'devel':
             revision = commit('heads/master')
-            content = base64.b64decode(gh(f'contents/gprMax/_version.py?ref={revision}')['content']).decode()
-            version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]+)', content, re.M)[1]
             source = 'master'
         else:
             matches = []
@@ -45,7 +43,11 @@ def main():
             source = max(matches)[1]
             version = source[2:]
             revision = commit('tags/' + source)
-        row = dict(channel=channel, version=version, revision=revision, source=source, packaging=packaging)
+        content = base64.b64decode(gh(f'contents/gprMax/_version.py?ref={revision}')['content']).decode()
+        runtime_version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]+)', content, re.M)[1]
+        if channel == 'devel':
+            version = runtime_version
+        row = dict(channel=channel, version=version, runtime_version=runtime_version, revision=revision, source=source, packaging=packaging)
         candidates = [f'{image}:build-{fingerprint[:12]}-{revision[:12]}-{channel}-{kind}' for kind in ['cpu', 'gpu']]
         exists = os.environ.get('GITHUB_EVENT_NAME') == 'schedule' and all(
             published(candidate, f'{image}:{channel}-{kind}')

@@ -28,6 +28,11 @@ Production deployments must pull and pin the verified `@sha256:...` digest;
 channel tags do not automatically upgrade workers. v3 images are standalone and
 are not supported by the Workbench v4 result pipeline.
 
+The official `v.3.1.7` source declares runtime version `3.1.6`. This upstream
+discrepancy is preserved: image/release tags identify 3.1.7, while
+`io.gprmax.runtime-version`, `GPRMAX_RUNTIME_VERSION` and the release manifest
+record 3.1.6. Source version files are never rewritten.
+
 Both images use Python 3.12. The GPU image uses CUDA 12.6.3 on Ubuntu 24.04 with Python in an isolated virtual environment.
 
 For the CPU version, a locally built image may perform better because gprMax is compiled for your host CPU.
