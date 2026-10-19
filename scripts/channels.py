@@ -1,5 +1,6 @@
 """Resolve official channels once; write the CI build matrix and manifest."""
 import base64
+import hashlib
 import json
 import os
 import re
@@ -23,6 +24,10 @@ def commit(ref):
 def main():
     releases = gh('releases?per_page=100')
     packaging = os.environ['GITHUB_SHA']
+    # Documentation-only commits must not force a scheduled rebuild.
+    inputs = [Path('Dockerfile.cpu'), Path('Dockerfile.gpu'), Path('.github/workflows/publish.yml')]
+    inputs += sorted(p for p in Path('scripts').iterdir() if p.is_file())
+    fingerprint = hashlib.sha256(b''.join(str(p).encode() + b'\0' + p.read_bytes() for p in inputs)).hexdigest()
     image = os.environ['IMAGE']
     entries, channels = [], []
     for channel in ['v4', 'v3', 'devel']:
@@ -41,10 +46,10 @@ def main():
             version = source[2:]
             revision = commit('tags/' + source)
         row = dict(channel=channel, version=version, revision=revision, source=source, packaging=packaging)
-        candidates = [f'{image}:build-{packaging[:12]}-{revision[:12]}-{channel}-{kind}' for kind in ['cpu', 'gpu']]
+        candidates = [f'{image}:build-{fingerprint[:12]}-{revision[:12]}-{channel}-{kind}' for kind in ['cpu', 'gpu']]
         exists = os.environ.get('GITHUB_EVENT_NAME') == 'schedule' and all(
-            subprocess.run(['docker', 'manifest', 'inspect', ref], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
-            for ref in candidates
+            published(candidate, f'{image}:{channel}-{kind}')
+            for kind, candidate in zip(['cpu', 'gpu'], candidates)
         )
         row['rebuild'] = not exists
         channels.append(row)
@@ -62,6 +67,12 @@ def main():
         print('matrix=' + json.dumps({'include': entries}), file=output)
         print('changed=' + str(bool(entries)).lower(), file=output)
     print(json.dumps(channels, indent=2))
+
+
+def published(candidate, alias):
+    # A pushed candidate alone does not prove that promotion succeeded.
+    manifests = [subprocess.run(['docker', 'manifest', 'inspect', ref], capture_output=True, text=True) for ref in [candidate, alias]]
+    return all(p.returncode == 0 for p in manifests) and json.loads(manifests[0].stdout) == json.loads(manifests[1].stdout)
 
 
 if __name__ == '__main__':

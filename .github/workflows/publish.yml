@@ -27,6 +27,7 @@ jobs:
       changed: ${{ steps.resolve.outputs.changed }}
     steps:
       - uses: actions/checkout@v4
+      - run: python3 -m unittest discover -s tests -v
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -42,6 +43,7 @@ jobs:
           path: channels.json
 
   build:
+    name: Build ${{ matrix.channel }} ${{ matrix.kind }}
     needs: resolve
     if: needs.resolve.outputs.changed == 'true'
     runs-on: ubuntu-latest
